@@ -6,7 +6,7 @@ import streamlit as st
 import plotly.express as px
 
 BASE_DIR = r"E:\ML_project_WC"
-SIM_PATH = os.path.join(BASE_DIR, "simulation_results.csv")
+SIM_PATH = "simulation_results.csv"
 
 
 @st.cache_data

@@ -43,10 +43,8 @@ def main():
         st.error("simulation_results.csv is empty or missing.")
         return
 
-    # Use nlargest to get the absolute top 15 teams
+    # --- MAIN PAGE: TOP 15 CHART ---
     top15 = df.nlargest(15, 'win_odds').copy()
-    
-    # Sort them descending for the chart so the #1 team is at the top
     chart_data = top15.sort_values("win_odds", ascending=True)
     
     fig = px.bar(
@@ -61,22 +59,25 @@ def main():
     fig.update_traces(textposition="outside")
     st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("Head-to-Head Match Simulator")
-    teams = sorted(df["team"].dropna().astype(str).unique().tolist())
-    col1, col2 = st.sidebar.columns(2)
-    team_a = st.sidebar.selectbox("Team A", teams, index=0)
-    team_b = st.sidebar.selectbox("Team B", [t for t in teams if t != team_a], index=0)
+    # --- SIDEBAR: HEAD-TO-HEAD MATCH SIMULATOR ---
+    with st.sidebar:
+        st.header("⚔️ Match Simulator")
+        teams = sorted(df["team"].dropna().astype(str).unique().tolist())
+        
+        team_a = st.selectbox("Team A", teams, index=0)
+        team_b = st.selectbox("Team B", [t for t in teams if t != team_a], index=0)
+        
+        if st.button("Simulate Match", use_container_width=True):
+            probs = simulate_head_to_head(team_a, team_b, df)
+            
+            st.markdown(f"### 📊 {team_a} vs {team_b}")
+            
+            # Simple clean display metrics for the sidebar
+            for idx, row in probs.iterrows():
+                st.metric(label=row["Outcome"], value=f"{row['Probability']:.2%}")
 
-    if st.sidebar.button("Simulate Match"):
-        probs = simulate_head_to_head(team_a, team_b, df)
-        st.write(f"### {team_a} vs {team_b}")
-        st.dataframe(probs, use_container_width=True)
-
-        fig2 = px.bar(probs, x="Outcome", y="Probability", text=probs["Probability"].map(lambda x: f"{x:.2%}"),
-                      title="Match Outcome Probabilities")
-        st.plotly_chart(fig2, use_container_width=True)
-
-    st.subheader("Tournament Odds Table")
+    # --- MAIN PAGE: TOURNAMENT ODDS TABLE ---
+    st.subheader("🏆 Full Tournament Odds Table")
     st.dataframe(df.head(48), use_container_width=True)
 
 

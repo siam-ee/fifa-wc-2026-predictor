@@ -70,16 +70,13 @@ def main():
     top15 = df.nlargest(15, 'win_odds').copy()
     chart_data = top15.sort_values("win_odds", ascending=True)
     
-    # Add flags to chart labels safely
-    chart_data["display_name"] = chart_data["team"].map(lambda x: f"{get_flag(x)} {x}")
-    
     fig = px.bar(
         chart_data,
         x="win_odds",
-        y="display_name",
+        y="team",
         orientation="h",
         title="Top 15 Teams by Win Odds",
-        labels={"win_odds": "Win Probability", "display_name": "Team"},
+        labels={"win_odds": "Win Probability", "team": "Team"},
         text=chart_data["win_odds"].map(lambda x: f"{x:.2%}")
     )
     fig.update_traces(textposition="outside")
@@ -90,7 +87,7 @@ def main():
         st.header("⚔️ Match Simulator")
         teams = sorted(df["team"].dropna().astype(str).unique().tolist())
         
-        # format_func adds flags to dropdown lists dynamically
+        # Dropdowns render emojis beautifully
         team_a = st.selectbox("Team A", teams, index=0, format_func=lambda x: f"{get_flag(x)} {x}")
         
         filtered_teams = [t for t in teams if t != team_a]
@@ -112,11 +109,7 @@ def main():
 
     # --- MAIN PAGE: TOURNAMENT ODDS TABLE ---
     st.subheader("🏆 Full Tournament Odds Table")
-    
-    display_df = df.head(48).copy()
-    display_df["team"] = display_df["team"].map(lambda x: f"{get_flag(x)} {x}")
-    
-    st.dataframe(display_df, use_container_width=True)
+    st.dataframe(df.head(48), use_container_width=True)
 
 
 if __name__ == "__main__":

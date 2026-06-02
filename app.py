@@ -22,7 +22,29 @@ def match_prob(home_rating, away_rating, home_adv=65.0):
     scale = 1 - p_draw
     return p_win * scale, p_draw, (1 - p_win) * scale
 
-
+def get_flag(country_name):
+    flags = {
+        # Hosts
+        "Canada": "🇨🇦", "Mexico": "🇲🇽", "USA": "🇺🇸",
+        # AFC
+        "Australia": "🇦🇺", "IR Iran": "🇮🇷", "Iraq": "🇮🇶", "Japan": "🇯🇵", 
+        "Jordan": "🇯🇴", "Qatar": "🇶🇦", "Saudi Arabia": "🇸🇦", "South Korea": "🇰🇷", "Uzbekistan": "🇺🇿",
+        # CAF
+        "Algeria": "🇩🇿", "Cape Verde": "🇨🇻", "DR Congo": "🇨🇩", "Egypt": "🇪🇬", "Ghana": "🇬🇭", 
+        "Côte d'Ivoire": "🇨🇮", "Morocco": "🇲🇦", "Senegal": "🇸🇳", "South Africa": "🇿🇦", "Tunisia": "🇹🇳",
+        # CONCACAF
+        "Curaçao": "🇨🇼", "Haiti": "🇭🇹", "Panama": "🇵🇦",
+        # CONMEBOL
+        "Argentina": "🇦🇷", "Brazil": "🇧🇷", "Colombia": "🇨🇴", "Ecuador": "🇪🇨", "Paraguay": "🇵🇾", "Uruguay": "🇺🇾",
+        # OFC
+        "New Zealand": "🇳🇿",
+        # UEFA
+        "Austria": "🇦🇹", "Belgium": "🇧🇪", "Bosnia": "🇧🇦", "Croatia": "🇭🇷", "Czechia": "🇨🇿", 
+        "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "France": "🇫🇷", "Germany": "🇩🇪", "Netherlands": "🇳🇱", "Norway": "🇳🇴", 
+        "Portugal": "🇵🇹", "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "Spain": "🇪🇸", "Sweden": "🇸🇪", "Switzerland": "🇨🇭", "Turkey": "🇹🇷"
+    }
+    return flags.get(country_name, "⚽")
+    
 def simulate_head_to_head(team_a, team_b, df):
     ra = float(df.loc[df["team"] == team_a, "elo_rating"].iloc[0]) if team_a in df["team"].values else 1500.0
     rb = float(df.loc[df["team"] == team_b, "elo_rating"].iloc[0]) if team_b in df["team"].values else 1500.0

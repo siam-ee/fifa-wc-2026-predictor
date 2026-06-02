@@ -2,7 +2,7 @@
 
 An end-to-end machine learning pipeline and interactive simulation engine that predicts the winner of the upcoming 48-team 2026 FIFA World Cup. This project runs **10,000 Monte Carlo simulations** of the tournament structure to calculate realistic progression odds.
 
-🔗 **[PASTE YOUR LIVE STREAMLIT WEB LINK HERE]**
+🔗 **https://fifawc2026-predictor.streamlit.app/**
 
 
 ## 🚀 Features

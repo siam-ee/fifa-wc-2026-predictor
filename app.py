@@ -5,7 +5,6 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-BASE_DIR = r"E:\ML_project_WC"
 SIM_PATH = "simulation_results.csv"
 
 
@@ -21,6 +20,7 @@ def match_prob(home_rating, away_rating, home_adv=65.0):
     p_draw = min(p_draw, 0.35)
     scale = 1 - p_draw
     return p_win * scale, p_draw, (1 - p_win) * scale
+
 
 def get_flag(country_name):
     flags = {
@@ -44,7 +44,8 @@ def get_flag(country_name):
         "Portugal": "🇵🇹", "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "Spain": "🇪🇸", "Sweden": "🇸🇪", "Switzerland": "🇨🇭", "Turkey": "🇹🇷"
     }
     return flags.get(country_name, "⚽")
-    
+
+
 def simulate_head_to_head(team_a, team_b, df):
     ra = float(df.loc[df["team"] == team_a, "elo_rating"].iloc[0]) if team_a in df["team"].values else 1500.0
     rb = float(df.loc[df["team"] == team_b, "elo_rating"].iloc[0]) if team_b in df["team"].values else 1500.0
@@ -69,13 +70,16 @@ def main():
     top15 = df.nlargest(15, 'win_odds').copy()
     chart_data = top15.sort_values("win_odds", ascending=True)
     
+    # Add flags to chart labels safely
+    chart_data["display_name"] = chart_data["team"].map(lambda x: f"{get_flag(x)} {x}")
+    
     fig = px.bar(
         chart_data,
         x="win_odds",
-        y="team",
+        y="display_name",
         orientation="h",
         title="Top 15 Teams by Win Odds",
-        labels={"win_odds": "Win Probability", "team": "Team"},
+        labels={"win_odds": "Win Probability", "display_name": "Team"},
         text=chart_data["win_odds"].map(lambda x: f"{x:.2%}")
     )
     fig.update_traces(textposition="outside")
@@ -86,21 +90,33 @@ def main():
         st.header("⚔️ Match Simulator")
         teams = sorted(df["team"].dropna().astype(str).unique().tolist())
         
-        team_a = st.selectbox("Team A", teams, index=0)
-        team_b = st.selectbox("Team B", [t for t in teams if t != team_a], index=0)
+        # format_func adds flags to dropdown lists dynamically
+        team_a = st.selectbox("Team A", teams, index=0, format_func=lambda x: f"{get_flag(x)} {x}")
+        
+        filtered_teams = [t for t in teams if t != team_a]
+        team_b = st.selectbox("Team B", filtered_teams, index=0, format_func=lambda x: f"{get_flag(x)} {x}")
         
         if st.button("Simulate Match", use_container_width=True):
             probs = simulate_head_to_head(team_a, team_b, df)
             
-            st.markdown(f"### 📊 {team_a} vs {team_b}")
+            st.markdown(f"### 📊 {get_flag(team_a)} vs {get_flag(team_b)}")
             
-            # Simple clean display metrics for the sidebar
             for idx, row in probs.iterrows():
-                st.metric(label=row["Outcome"], value=f"{row['Probability']:.2%}")
+                outcome = row["Outcome"]
+                if outcome == "Draw":
+                    display_label = "🤝 Draw"
+                else:
+                    display_label = f"{get_flag(outcome)} {outcome}"
+                    
+                st.metric(label=display_label, value=f"{row['Probability']:.2%}")
 
     # --- MAIN PAGE: TOURNAMENT ODDS TABLE ---
     st.subheader("🏆 Full Tournament Odds Table")
-    st.dataframe(df.head(48), use_container_width=True)
+    
+    display_df = df.head(48).copy()
+    display_df["team"] = display_df["team"].map(lambda x: f"{get_flag(x)} {x}")
+    
+    st.dataframe(display_df, use_container_width=True)
 
 
 if __name__ == "__main__":

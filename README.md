@@ -30,4 +30,3 @@ According to the final model simulation, **Spain** has the highest probability o
 * **Data Science:** Pandas, NumPy
 * **Machine Learning:** XGBoost, Scikit-Learn
 * **Visualization:** Plotly
-*

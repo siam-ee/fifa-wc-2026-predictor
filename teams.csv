@@ -1,0 +1,49 @@
+id,team_name,fifa_code,group_letter,is_placeholder
+1,Mexico,MEX,A,FALSE
+2,South Africa,RSA,A,FALSE
+3,South Korea,KOR,A,FALSE
+4,Czechia,CZE,A,FALSE
+5,Canada,CAN,B,FALSE
+6,Bosnia,BiH,B,FALSE
+7,Qatar,QAT,B,FALSE
+8,Switzerland,SUI,B,FALSE
+9,Brazil,BRA,C,FALSE
+10,Morocco,MAR,C,FALSE
+11,Haiti,HAI,C,FALSE
+12,Scotland,SCO,C,FALSE
+13,USA,USA,D,FALSE
+14,Paraguay,PAR,D,FALSE
+15,Australia,AUS,D,FALSE
+16,Turkiye,TUR,D,FALSE
+17,Germany,GER,E,FALSE
+18,Curaçao,CUR,E,FALSE
+19,Côte d'Ivoire,CIV,E,FALSE
+20,Ecuador,ECU,E,FALSE
+21,Netherlands,NED,F,FALSE
+22,Japan,JPN,F,FALSE
+23,Sweden,SWE,F,FALSE
+24,Tunisia,TUN,F,FALSE
+25,Belgium,BEL,G,FALSE
+26,Egypt,EGY,G,FALSE
+27,IR Iran,IRN,G,FALSE
+28,New Zealand,NZL,G,FALSE
+29,Spain,ESP,H,FALSE
+30,Cabo Verde,CPV,H,FALSE
+31,Saudi Arabia,KSA,H,FALSE
+32,Uruguay,URU,H,FALSE
+33,France,FRA,I,FALSE
+34,Senegal,SEN,I,FALSE
+35,Iraq,IRQ,I,FALSE
+36,Norway,NOR,I,FALSE
+37,Argentina,ARG,J,FALSE
+38,Algeria,ALG,J,FALSE
+39,Austria,AUT,J,FALSE
+40,Jordan,JOR,J,FALSE
+41,Portugal,POR,K,FALSE
+42,DR Congo,DRC,K,FALSE
+43,Uzbekistan,UZB,K,FALSE
+44,Colombia,COL,K,FALSE
+45,England,ENG,L,FALSE
+46,Croatia,CRO,L,FALSE
+47,Ghana,GHA,L,FALSE
+48,Panama,PAN,L,FALSE

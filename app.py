@@ -22,28 +22,37 @@ def match_prob(home_rating, away_rating, home_adv=65.0):
     return p_win * scale, p_draw, (1 - p_win) * scale
 
 
-def get_flag(country_name):
-    flags = {
+def get_flag_url(country_name):
+    """
+    Returns the URL of a high-quality flag PNG image.
+    Uses standard 2-letter ISO codes mapped to a reliable online flag repository.
+    """
+    iso_codes = {
         # Hosts
-        "Canada": "🇨🇦", "Mexico": "🇲🇽", "USA": "🇺🇸",
+        "Canada": "ca", "Mexico": "mx", "USA": "us",
         # AFC
-        "Australia": "🇦🇺", "IR Iran": "🇮🇷", "Iraq": "🇮🇶", "Japan": "🇯🇵", 
-        "Jordan": "🇯🇴", "Qatar": "🇶🇦", "Saudi Arabia": "🇸🇦", "South Korea": "🇰🇷", "Uzbekistan": "🇺🇿",
+        "Australia": "au", "IR Iran": "ir", "Iraq": "iq", "Japan": "jp", 
+        "Jordan": "jo", "Qatar": "qa", "Saudi Arabia": "sa", "South Korea": "kr", "Uzbekistan": "uz",
         # CAF
-        "Algeria": "🇩🇿", "Cape Verde": "🇨🇻", "DR Congo": "🇨🇩", "Egypt": "🇪🇬", "Ghana": "🇬🇭", 
-        "Côte d'Ivoire": "🇨🇮", "Morocco": "🇲🇦", "Senegal": "🇸🇳", "South Africa": "🇿🇦", "Tunisia": "🇹🇳",
+        "Algeria": "dz", "Cape Verde": "cv", "Cabo Verde": "cv", "DR Congo": "cd", "Egypt": "eg", "Ghana": "gh", 
+        "Côte d'Ivoire": "ci", "Morocco": "ma", "Senegal": "sn", "South Africa": "za", "Tunisia": "tn",
         # CONCACAF
-        "Curaçao": "🇨🇼", "Haiti": "🇭🇹", "Panama": "🇵🇦",
+        "Curaçao": "cw", "Haiti": "ht", "Panama": "pa",
         # CONMEBOL
-        "Argentina": "🇦🇷", "Brazil": "🇧🇷", "Colombia": "🇨🇴", "Ecuador": "🇪🇨", "Paraguay": "🇵🇾", "Uruguay": "🇺🇾",
+        "Argentina": "ar", "Brazil": "br", "Colombia": "co", "Ecuador": "ec", "Paraguay": "py", "Uruguay": "uy",
         # OFC
-        "New Zealand": "🇳🇿",
+        "New Zealand": "nz",
         # UEFA
-        "Austria": "🇦🇹", "Belgium": "🇧🇪", "Bosnia": "🇧🇦", "Croatia": "🇭🇷", "Czechia": "🇨🇿", 
-        "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "France": "🇫🇷", "Germany": "🇩🇪", "Netherlands": "🇳🇱", "Norway": "🇳🇴", 
-        "Portugal": "🇵🇹", "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "Spain": "🇪🇸", "Sweden": "🇸🇪", "Switzerland": "🇨🇭", "Turkey": "🇹🇷"
+        "Austria": "at", "Belgium": "be", "Bosnia": "ba", "Croatia": "hr", "Czechia": "cz", 
+        "England": "gb-eng", "France": "fr", "Germany": "de", "Netherlands": "nl", "Norway": "no", 
+        "Portugal": "pt", "Scotland": "gb-sct", "Spain": "es", "Sweden": "se", "Switzerland": "ch", "Turkey": "tr", "Turkiye": "tr"
     }
-    return flags.get(country_name, "⚽")
+    
+    code = iso_codes.get(country_name)
+    if code:
+        # Pulls clean, official vector/PNG flags from a reliable public CDN
+        return f"https://flagcdn.com/w40/{code}.png"
+    return None
 
 
 def simulate_head_to_head(team_a, team_b, df):
@@ -58,7 +67,11 @@ def simulate_head_to_head(team_a, team_b, df):
 
 
 def main():
-    st.set_page_config(page_title="2026 FIFA World Cup Predictor", layout="wide")
+    st.set_page_config(
+        page_title="2026 FIFA World Cup Predictor", 
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
     st.title("2026 FIFA World Cup Prediction Dashboard")
 
     df = load_results()
@@ -87,25 +100,32 @@ def main():
         st.header("⚔️ Match Simulator")
         teams = sorted(df["team"].dropna().astype(str).unique().tolist())
         
-        # Dropdowns render emojis beautifully
-        team_a = st.selectbox("Team A", teams, index=0, format_func=lambda x: f"{get_flag(x)} {x}")
-        
+        team_a = st.selectbox("Team A", teams, index=0)
         filtered_teams = [t for t in teams if t != team_a]
-        team_b = st.selectbox("Team B", filtered_teams, index=0, format_func=lambda x: f"{get_flag(x)} {x}")
+        team_b = st.selectbox("Team B", filtered_teams, index=0)
         
         if st.button("Simulate Match", use_container_width=True):
             probs = simulate_head_to_head(team_a, team_b, df)
             
-            st.markdown(f"### 📊 {get_flag(team_a)} vs {get_flag(team_b)}")
+            st.markdown("---")
+            st.markdown(f"### 📊 Matchup Prediction")
             
+            # Display metrics alongside actual, high-quality flag image links
             for idx, row in probs.iterrows():
                 outcome = row["Outcome"]
+                
                 if outcome == "Draw":
-                    display_label = "🤝 Draw"
+                    st.markdown("#### 🤝 Draw")
                 else:
-                    display_label = f"{get_flag(outcome)} {outcome}"
-                    
-                st.metric(label=display_label, value=f"{row['Probability']:.2%}")
+                    flag_url = get_flag_url(outcome)
+                    if flag_url:
+                        # Uses simple HTML formatting to position the flag image nicely inline next to the text
+                        st.markdown(f'#### <img src="{flag_url}" width="25"> {outcome}', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"#### ⚽ {outcome}")
+                        
+                st.metric(label="Win Probability", value=f"{row['Probability']:.2%}")
+                st.markdown("") # Tiny spacing block
 
     # --- MAIN PAGE: TOURNAMENT ODDS TABLE ---
     st.subheader("🏆 Full Tournament Odds Table")

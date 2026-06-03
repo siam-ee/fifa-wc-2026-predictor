@@ -86,29 +86,29 @@ elif st.session_state.page == "H2H":
     t1 = st.selectbox("Team 1", df['Team Name'].tolist(), key="t1")
     t2 = st.selectbox("Team 2", df['Team Name'].tolist(), key="t2")
     
+elif st.session_state.page == "H2H":
+    st.header("Head to Head Simulator")
+    t1 = st.selectbox("Team 1", df['Team Name'].tolist(), key="t1")
+    t2 = st.selectbox("Team 2", df['Team Name'].tolist(), key="t2")
+    
     if st.button("Simulate"):
         if t1 == t2:
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
-            # FIX: Reload raw data to ensure we have pure floats for math
             df_raw = pd.read_csv("simulation_results.csv")
-            # Re-create the same columns as your main load_data function
-            df_raw['quarter_odds'] = df_raw['semi_odds'] + df_raw['final_odds']
-            
-            def get_strength(team_name):
-                # Access raw data
-                row = df_raw[df_raw['team'] == team_name].iloc[0]
-                # These are now floats, no need for .strip('%')
-                odds = [float(row[col]) for col in ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']]
-                return sum(odds)
+            def get_strength(name):
+                row = df_raw[df_raw['team'] == name].iloc[0]
+                return sum([float(row[c]) for c in ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']])
 
-            s1 = get_strength(t1)
-            s2 = get_strength(t2)
-            
+            s1, s2 = get_strength(t1), get_strength(t2)
             total_s = s1 + s2
-            win_prob_diff = abs(s1 - s2) / total_s
-            pd = max(0.10, 0.30 - (win_prob_diff * 0.5))
             
+            # Draw Logic: Close teams = 30% draw. Mismatched teams = closer to 5% draw.
+            diff_ratio = abs(s1 - s2) / total_s
+            pd = 0.30 * (1 - diff_ratio**0.5) # The further apart, the smaller the draw chance
+            pd = max(0.02, pd) # Now the floor is 2%, not 10%
+            
+            # Distribute wins based on strength ratio
             remaining = 1.0 - pd
             p1 = (s1 / total_s) * remaining
             p2 = (s2 / total_s) * remaining

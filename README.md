@@ -26,7 +26,7 @@ While this model provides statistically backed predictions, the actual outcome o
 * **Injury Variables:** The model does not account for last-minute injuries to key players or the physical toll of a long club season, which can drastically shift a team's potential overnight.
 * **Tactical Flexibility:** Football is often decided by specific, game-altering tactical masterclasses or "parking the bus" strategies that ELO ratings cannot fully capture.
 * **Disciplinary Factors:** Red cards and the accumulation of yellow cards (suspensions) are non-linear variables that can change the trajectory of a favorite’s campaign during the knockout rounds.
-* **Psychological Dynamics:** The "World Cup Effect"—the mental pressure of representing a nation on the world's biggest stage—remains an unpredictable human element that pure ML models may underrepresent.
+* **Psychological Dynamics:** The "World Cup Effect", the mental pressure of representing a nation on the world's biggest stage, remains an unpredictable human element that pure ML models may underrepresent.
 
 ## 🛠️ Tech Stack
 * **Language:** Python

@@ -28,13 +28,9 @@ st.markdown("""
 @st.cache_data
 def load_data():
     df = pd.read_csv("simulation_results.csv")
-    # Corrected indices based on video: 0:team, 1:elo, 2:r16, 3:qtr, 4:semi, 5:final, 6:win
-    # We build the 'quarter_odds' from the existing data (e.g., semi+final)
-    df['quarter_odds'] = df.iloc[:, 4] + df.iloc[:, 5]
-    
-    # Create clean dataframe using specific column indices
-    df_clean = df.iloc[:, [0, 1, 2, 8, 4, 5, 6]].copy() if df.shape[1] > 8 else df.iloc[:, [0, 1, 2, 3, 4, 5, 6]].copy()
-    
+    # Correct mapping based on video: 
+    # 0:team, 1:elo, 2:r16, 3:quarter, 4:semi, 5:final, 6:win
+    df_clean = df.iloc[:, [0, 1, 2, 3, 4, 5, 6]].copy()
     df_clean.columns = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
     df_clean.insert(0, 'No.', range(1, 1 + len(df_clean)))
     return df_clean
@@ -92,10 +88,10 @@ elif st.session_state.page == "H2H":
         else:
             df_raw = pd.read_csv("simulation_results.csv")
             def get_strength(name):
-                # Search first column for team name
+                # Ensure we match the name correctly from the first column
                 match = df_raw[df_raw.iloc[:, 0].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0
-                # Sum columns 2 through 6 (Odds columns)
+                # Sum columns 2 through 6 (Odds columns: R16, Qtr, Semi, Final, Win)
                 return float(match.iloc[0, 2:7].sum())
 
             s1, s2 = get_strength(t1), get_strength(t2)

@@ -4,7 +4,7 @@ import plotly.express as px
 
 st.set_page_config(layout="wide", page_title="2026 World Cup Predictor")
 
-# 1. UPDATED CSS: Added text-shadow to titles
+# 1. CSS
 st.markdown("""
     <style>
     .stApp { background: url('https://i.imgur.com/GtqgyfN.jpeg') no-repeat center center fixed; background-size: cover; }
@@ -14,8 +14,7 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 20px; 
     }
-    /* Titles with shadow, table/team text without */
-    h1, h2, label, p { color: white !important; text-shadow: 2px 2px 4px black; }
+    h1, h2, h3, label, p { color: white !important; text-shadow: 2px 2px 4px black; }
     div[data-baseweb="select"], .stButton>button { 
         background-color: rgba(255, 255, 255, 0.2) !important;
         color: white !important;
@@ -39,9 +38,10 @@ df = load_data()
 # 3. STATE
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
-st.title("The Greatest Sporting Event is here")
+# 4. HEADER
+st.subheader("The Greatest Sporting Event is here 🐐")
+st.title("FIFA WORLD CUP 2026")
 
-# FIXED: Added format_func to display "Select your fav team" as the placeholder
 selected_team = st.selectbox(
     "⚽ Support a Team", 
     [""] + df['Team Name'].tolist(),
@@ -55,17 +55,13 @@ if c3.button("⚔️ Head to Head Simulator"): st.session_state.page = "H2H"
 
 st.markdown("---")
 
-# 4. LOGIC
+# 5. LOGIC
 if st.session_state.page == "Dashboard" and selected_team:
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
-    
     colors = [ 'gold' if x == selected_team else 'royalblue' for x in top15['Team Name']]
-    
     fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h",
-                 color=colors, color_discrete_map="identity",
-                 text_auto='.1%')
-    
+                 color=colors, color_discrete_map="identity", text_auto='.1%')
     fig.update_traces(textposition='outside')
     fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="white")
     st.plotly_chart(fig, use_container_width=True)
@@ -75,10 +71,8 @@ elif st.session_state.page == "Table":
     df_display = df.copy()
     for col in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
         df_display[col] = df_display[col].apply(lambda x: f"{x*100:.1f}%")
-        
     def highlight_team(row):
         return ['background-color: rgba(255, 215, 0, 0.3)' if row['Team Name'] == selected_team else '' for _ in row]
-    
     st.dataframe(df_display.style.apply(highlight_team, axis=1).hide(axis='index'), use_container_width=True)
 
 elif st.session_state.page == "H2H":
@@ -86,12 +80,7 @@ elif st.session_state.page == "H2H":
     t1 = st.selectbox("Team 1", df['Team Name'].tolist(), key="t1")
     t2 = st.selectbox("Team 2", df['Team Name'].tolist(), key="t2")
     
-elif st.session_state.page == "H2H":
-    st.header("Head to Head Simulator")
-    t1 = st.selectbox("Team 1", df['Team Name'].tolist(), key="t1")
-    t2 = st.selectbox("Team 2", df['Team Name'].tolist(), key="t2")
-    
-    if st.button("Simulate"):
+    if st.button("Simulate Match"):
         if t1 == t2:
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
@@ -99,19 +88,12 @@ elif st.session_state.page == "H2H":
             def get_strength(name):
                 row = df_raw[df_raw['team'] == name].iloc[0]
                 return sum([float(row[c]) for c in ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']])
-
             s1, s2 = get_strength(t1), get_strength(t2)
             total_s = s1 + s2
-            
-            # Draw Logic: Close teams = 30% draw. Mismatched teams = closer to 5% draw.
             diff_ratio = abs(s1 - s2) / total_s
-            pd = 0.30 * (1 - diff_ratio**0.5) # The further apart, the smaller the draw chance
-            pd = max(0.02, pd) # Now the floor is 2%, not 10%
-            
-            # Distribute wins based on strength ratio
+            pd = max(0.02, 0.30 * (1 - diff_ratio**0.5))
             remaining = 1.0 - pd
-            p1 = (s1 / total_s) * remaining
-            p2 = (s2 / total_s) * remaining
+            p1, p2 = (s1 / total_s) * remaining, (s2 / total_s) * remaining
             
         c1, c2, c3 = st.columns(3)
         c1.metric(f"{t1} Win", f"{p1:.1%}")

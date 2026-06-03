@@ -14,7 +14,6 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 20px; 
     }
-    /* Gold Title styling */
     .gold-title { color: gold !important; text-shadow: 2px 2px 4px black; }
     h1, h2, h3, label, p { color: white !important; text-shadow: 2px 2px 4px black; }
     div[data-baseweb="select"], .stButton>button { 
@@ -29,11 +28,13 @@ st.markdown("""
 @st.cache_data
 def load_data():
     df = pd.read_csv("simulation_results.csv")
-    df['quarter_odds'] = df['semi_odds'] + df['final_odds']
-    df = df[['team', 'elo_rating', 'round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']]
-    df.columns = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
-    df.insert(0, 'No.', range(1, 1 + len(df)))
-    return df
+    # Dynamically create quarter_odds by index to be safe
+    df['quarter_odds'] = df.iloc[:, 4] + df.iloc[:, 5] # Assuming index 4 and 5 are Semi/Final
+    # Select columns by position to avoid KeyErrors
+    df_clean = df.iloc[:, [0, 1, 2, 8, 4, 5, 6]] 
+    df_clean.columns = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
+    df_clean.insert(0, 'No.', range(1, 1 + len(df_clean)))
+    return df_clean
 
 df = load_data()
 
@@ -41,7 +42,6 @@ df = load_data()
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
 # 4. HEADER
-# Reduced subheader size using markdown
 st.markdown("##### The Greatest Sporting Event is here 🐐")
 st.markdown("<h1 class='gold-title'>FIFA WORLD CUP 2026</h1>", unsafe_allow_html=True)
 
@@ -90,16 +90,16 @@ elif st.session_state.page == "H2H":
             df_raw = pd.read_csv("simulation_results.csv")
             
             def get_strength(name):
-                # Robust matching: ignore case and whitespace
-                match = df_raw[df_raw['team'].str.strip().str.lower() == name.strip().lower()]
+                # Match by string comparison on the first column
+                match = df_raw[df_raw.iloc[:, 0].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0
-                row = match.iloc[0]
-                return sum([float(row[c]) for c in ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']])
+                # Sum columns 2 through 6 (positional index)
+                return float(match.iloc[0, 2:7].sum())
 
             s1, s2 = get_strength(t1), get_strength(t2)
             
             if s1 == 0 or s2 == 0:
-                st.error("Error: Team data not found.")
+                st.error("Error: Could not retrieve data for these teams.")
             else:
                 total_s = s1 + s2
                 diff_ratio = abs(s1 - s2) / total_s

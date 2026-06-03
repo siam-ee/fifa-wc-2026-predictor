@@ -4,20 +4,40 @@ import plotly.express as px
 
 st.set_page_config(layout="wide", page_title="2026 World Cup Predictor")
 
-# 1. ENHANCED GLASS CSS (Visible in Light/Dark Mode)
+# 1. ROBUST GLASS CSS - Explicitly styling inputs/buttons
 st.markdown("""
     <style>
     .stApp { background-image: url('https://i.imgur.com/GtqgyfN.jpeg'); background-size: cover; background-attachment: fixed; }
+    
+    /* The main container */
     div.block-container { 
-        background: rgba(0, 0, 0, 0.4) !important; 
-        backdrop-filter: blur(8px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2); 
+        background: rgba(0, 0, 0, 0.5) !important; 
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3); 
         border-radius: 20px; padding: 3rem !important; 
     }
-    h1, h2, h3, div, label, p, .stButton>button { color: white !important; font-weight: 600 !important; }
-    /* Force dropdown visibility */
-    .stSelectbox div[data-baseweb="select"] { background-color: rgba(255,255,255,0.2) !important; }
-    .stSelectbox span { color: white !important; }
+    
+    /* Force text and labels to be white with a dark shadow for light-mode visibility */
+    h1, h2, h3, div, label, p, .stButton>button { 
+        color: white !important; 
+        text-shadow: 1px 1px 2px black; 
+    }
+    
+    /* Make inputs and dropdowns glass-like and readable */
+    div[data-baseweb="select"], div[data-baseweb="input"] {
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    /* Buttons */
+    .stButton>button { 
+        background-color: rgba(255, 255, 255, 0.2) !important; 
+        border: 1px solid white !important; 
+        padding: 10px 25px !important; 
+        font-size: 18px !important;
+        transition: 0.3s;
+    }
+    .stButton>button:hover { background-color: rgba(255, 255, 255, 0.4) !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -32,7 +52,7 @@ def load_data():
 
 df = load_data()
 
-# 3. INITIALIZATION
+# 3. STATE MANAGEMENT
 if 'supported_team' not in st.session_state: st.session_state.supported_team = None
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
@@ -52,7 +72,6 @@ if st.session_state.page == "Dashboard":
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
     top15['color'] = top15['Team Name'].apply(lambda x: 'Selected' if x == st.session_state.supported_team else 'Other')
-    # Added text_auto=True for labels
     fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h", color="color", 
                  color_discrete_map={"Selected": "gold", "Other": "royalblue"}, text_auto='.1%')
     fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="white")
@@ -72,7 +91,6 @@ elif st.session_state.page == "H2H":
         if t1 == t2:
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
-            # Your existing math logic here
             p1, pd, p2 = 0.45, 0.20, 0.35 
         col1, col2, col3 = st.columns(3)
         col1.metric(f"{t1} Win", f"{p1:.1%}")

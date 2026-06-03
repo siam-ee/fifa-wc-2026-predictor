@@ -28,10 +28,13 @@ st.markdown("""
 @st.cache_data
 def load_data():
     df = pd.read_csv("simulation_results.csv")
-    # Dynamically create quarter_odds by index to be safe
-    df['quarter_odds'] = df.iloc[:, 4] + df.iloc[:, 5] # Assuming index 4 and 5 are Semi/Final
-    # Select columns by position to avoid KeyErrors
-    df_clean = df.iloc[:, [0, 1, 2, 8, 4, 5, 6]] 
+    # Corrected indices based on video: 0:team, 1:elo, 2:r16, 3:qtr, 4:semi, 5:final, 6:win
+    # We build the 'quarter_odds' from the existing data (e.g., semi+final)
+    df['quarter_odds'] = df.iloc[:, 4] + df.iloc[:, 5]
+    
+    # Create clean dataframe using specific column indices
+    df_clean = df.iloc[:, [0, 1, 2, 8, 4, 5, 6]].copy() if df.shape[1] > 8 else df.iloc[:, [0, 1, 2, 3, 4, 5, 6]].copy()
+    
     df_clean.columns = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
     df_clean.insert(0, 'No.', range(1, 1 + len(df_clean)))
     return df_clean
@@ -88,25 +91,22 @@ elif st.session_state.page == "H2H":
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
             df_raw = pd.read_csv("simulation_results.csv")
-            
             def get_strength(name):
-                # Match by string comparison on the first column
+                # Search first column for team name
                 match = df_raw[df_raw.iloc[:, 0].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0
-                # Sum columns 2 through 6 (positional index)
+                # Sum columns 2 through 6 (Odds columns)
                 return float(match.iloc[0, 2:7].sum())
 
             s1, s2 = get_strength(t1), get_strength(t2)
-            
             if s1 == 0 or s2 == 0:
-                st.error("Error: Could not retrieve data for these teams.")
+                st.error("Error: Team data not found.")
             else:
                 total_s = s1 + s2
                 diff_ratio = abs(s1 - s2) / total_s
                 pd = max(0.02, 0.30 * (1 - diff_ratio**0.5))
                 remaining = 1.0 - pd
                 p1, p2 = (s1 / total_s) * remaining, (s2 / total_s) * remaining
-                
                 c1, c2, c3 = st.columns(3)
                 c1.metric(f"{t1} Win", f"{p1:.1%}")
                 c2.metric("Draw", f"{pd:.1%}")

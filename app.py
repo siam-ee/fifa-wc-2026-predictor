@@ -40,7 +40,13 @@ df = load_data()
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
 st.title("The Greatest Sporting Event is here")
-selected_team = st.selectbox("⚽ Support a Team", [""] + df['Team Name'].tolist())
+
+# FIXED: Added format_func to display "Select your fav team" as the placeholder
+selected_team = st.selectbox(
+    "⚽ Support a Team", 
+    [""] + df['Team Name'].tolist(),
+    format_func=lambda x: "Select your fav team" if x == "" else x
+)
 
 c1, c2, c3 = st.columns(3)
 if c1.button("🏆 Prediction Dashboard"): st.session_state.page = "Dashboard"
@@ -54,10 +60,8 @@ if st.session_state.page == "Dashboard" and selected_team:
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
     
-    # Corrected color mapping: Selected=Gold, Normal=RoyalBlue
     colors = [ 'gold' if x == selected_team else 'royalblue' for x in top15['Team Name']]
     
-    # text_auto percentage formatting, labels moved outside
     fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h",
                  color=colors, color_discrete_map="identity",
                  text_auto='.1%')
@@ -68,7 +72,6 @@ if st.session_state.page == "Dashboard" and selected_team:
 
 elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")
-    # Show percentages in table (multiply by 100)
     df_display = df.copy()
     for col in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
         df_display[col] = df_display[col].apply(lambda x: f"{x*100:.1f}%")
@@ -85,7 +88,6 @@ elif st.session_state.page == "H2H":
     if st.button("Simulate"):
         p1, pd, p2 = (0.50, 0.00, 0.50) if t1 == t2 else (0.45, 0.20, 0.35)
         c1, c2, c3 = st.columns(3)
-        # Display as percentages
         c1.metric(f"{t1} Win", f"{p1:.1%}")
         c2.metric("Draw", f"{pd:.1%}")
         c3.metric(f"{t2} Win", f"{p2:.1%}")

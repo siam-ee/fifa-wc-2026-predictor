@@ -21,15 +21,21 @@ st.markdown("""
         color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.4) !important;
     }
+    /* Mobile Responsive Fix: Disable blur on small screens to prevent glitches */
+    @media (max-width: 768px) {
+        .block-container { backdrop-filter: none !important; background: rgba(0,0,0,0.6) !important; }
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # 2. DATA
 @st.cache_data
 def load_data():
-    df = pd.read_csv("simulation_results.csv")
+    try:
+        df = pd.read_csv("simulation_results.csv")
+    except Exception:
+        return pd.DataFrame() # Return empty if file not found
     
-    # Map CSV headers to display names
     df = df.rename(columns={
         'team': 'Team Name',
         'elo_rating': 'ELO Rating',
@@ -39,21 +45,15 @@ def load_data():
         'win_odds': 'Win Odds'
     })
     
-    # Calculate Quarter Odds
     if 'Semi Odds' in df.columns and 'Final Odds' in df.columns:
         df['Quarter Odds'] = df['Semi Odds'] + df['Final Odds']
     
-    # Set explicit column order
     cols_order = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
-    # Add missing columns if any
     for col in cols_order:
         if col not in df.columns: df[col] = 0.0
     
     df = df[cols_order]
-    
-    # Format ELO to integer (removes decimals)
     df['ELO Rating'] = df['ELO Rating'].astype(int)
-    
     df.insert(0, 'No.', range(1, 1 + len(df)))
     return df
 
@@ -68,7 +68,7 @@ st.markdown("<h1 class='gold-title'>FIFA WORLD CUP 2026</h1>", unsafe_allow_html
 
 selected_team = st.selectbox(
     "⚽ Support a Team", 
-    [""] + df['Team Name'].tolist(),
+    [""] + (df['Team Name'].tolist() if not df.empty else []),
     format_func=lambda x: "Select your fav team" if x == "" else x
 )
 
@@ -93,13 +93,10 @@ if st.session_state.page == "Dashboard" and selected_team:
 elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")
     df_display = df.copy()
-    # Format percentages to 2 decimal places
     for col in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
         df_display[col] = df_display[col].apply(lambda x: f"{x*100:.2f}%")
     
-    # Set 'No.' as the index to hide the default Pandas index
     df_display = df_display.set_index('No.')
-    
     def highlight_team(row):
         return ['background-color: rgba(255, 215, 0, 0.3)' if row['Team Name'] == selected_team else '' for _ in row]
     
@@ -116,9 +113,12 @@ elif st.session_state.page == "H2H":
         else:
             df_raw = load_data()
             def get_strength(name):
+                # Defensive check: ensure column exists before accessing
                 match = df_raw[df_raw['Team Name'].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0
-                return float(match[['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']].sum(axis=1).iloc[0])
+                cols = ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
+                existing_cols = [c for c in cols if c in match.columns]
+                return float(match[existing_cols].sum(axis=1).iloc[0])
 
             s1, s2 = get_strength(t1), get_strength(t2)
             if s1 == 0 or s2 == 0:

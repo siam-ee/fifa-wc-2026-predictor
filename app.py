@@ -90,26 +90,25 @@ elif st.session_state.page == "H2H":
         if t1 == t2:
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
-            # 1. Calculate a "Tournament Strength Score" for each team
-            # We use all the odds columns as a proxy for team quality
+            # FIX: Reload raw data to ensure we have pure floats for math
+            df_raw = pd.read_csv("simulation_results.csv")
+            # Re-create the same columns as your main load_data function
+            df_raw['quarter_odds'] = df_raw['semi_odds'] + df_raw['final_odds']
+            
             def get_strength(team_name):
-                row = df[df['Team Name'] == team_name].iloc[0]
-                # Convert percentage strings back to floats
-                odds = [float(row[c].strip('%'))/100 for c in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']]
+                # Access raw data
+                row = df_raw[df_raw['team'] == team_name].iloc[0]
+                # These are now floats, no need for .strip('%')
+                odds = [float(row[col]) for col in ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']]
                 return sum(odds)
 
             s1 = get_strength(t1)
             s2 = get_strength(t2)
             
-            # 2. Probability Logic
-            # Total strength ratio
             total_s = s1 + s2
-            win_prob_diff = abs(s1 - s2) / total_s  # Larger diff = less likely draw
-            
-            # Draw is high if teams are close, low if teams are far apart (max 30%, min 10%)
+            win_prob_diff = abs(s1 - s2) / total_s
             pd = max(0.10, 0.30 - (win_prob_diff * 0.5))
             
-            # Remaining probability distributed by strength
             remaining = 1.0 - pd
             p1 = (s1 / total_s) * remaining
             p2 = (s2 / total_s) * remaining

@@ -29,18 +29,26 @@ st.markdown("""
 def load_data():
     df = pd.read_csv("simulation_results.csv")
     
-    # DYNAMIC RENAMING: This safely maps available columns without crashing if one is missing
-    # We map whatever is there to the standard names we expect
-    expected_cols = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
+    # FIX: Map your CSV's actual column names to the names the app expects.
+    # ADJUST THE KEYS (left side) to match your CSV's exact header names.
+    df = df.rename(columns={
+        'team': 'Team Name',
+        'elo_rating': 'ELO Rating',
+        'round16_odds': 'RO16 Odds',
+        'semi_odds': 'Semi Odds',
+        'final_odds': 'Final Odds',
+        'win_odds': 'Win Odds'
+    })
     
-    # Only rename up to the number of columns that actually exist in your file
-    cols_to_use = expected_cols[:len(df.columns)]
-    df.columns = cols_to_use
-    
-    # Safe calculation: only if columns exist
+    # Calculate Quarter Odds
     if 'Semi Odds' in df.columns and 'Final Odds' in df.columns:
         df['Quarter Odds'] = df['Semi Odds'] + df['Final Odds']
     
+    # Ensure all expected columns exist to prevent KeyErrors
+    for col in ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
+        if col not in df.columns:
+            df[col] = 0.0
+            
     df.insert(0, 'No.', range(1, 1 + len(df)))
     return df
 
@@ -81,8 +89,7 @@ elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")
     df_display = df.copy()
     for col in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
-        if col in df_display.columns:
-            df_display[col] = df_display[col].apply(lambda x: f"{x*100:.1f}%")
+        df_display[col] = df_display[col].apply(lambda x: f"{x*100:.1f}%")
     def highlight_team(row):
         return ['background-color: rgba(255, 215, 0, 0.3)' if row['Team Name'] == selected_team else '' for _ in row]
     st.dataframe(df_display.style.apply(highlight_team, axis=1).hide(axis='index'), use_container_width=True)
@@ -96,18 +103,17 @@ elif st.session_state.page == "H2H":
         if t1 == t2:
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
-            df_raw = pd.read_csv("simulation_results.csv")
+            # Re-read and re-apply the same mapping
+            df_raw = load_data()
             
             def get_strength(name):
-                # Search using the first column index safely
-                match = df_raw[df_raw.iloc[:, 0].astype(str).str.strip().str.lower() == name.strip().lower()]
+                match = df_raw[df_raw['Team Name'].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0
-                # Sum columns starting from index 2 to end, to capture all available odds
-                return float(match.iloc[0, 2:].sum())
+                return float(match[['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']].sum(axis=1).iloc[0])
 
             s1, s2 = get_strength(t1), get_strength(t2)
             if s1 == 0 or s2 == 0:
-                st.error("Error: Team data not found or insufficient columns.")
+                st.error("Error: Team data not found.")
             else:
                 total_s = s1 + s2
                 diff_ratio = abs(s1 - s2) / total_s

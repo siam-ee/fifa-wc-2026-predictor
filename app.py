@@ -68,7 +68,7 @@ df = load_data()
 # 3. STATE & UI
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
-st.markdown("##### The Greatest Sporting Event is here 🐐")
+st.markdown("##### The Greatest Sporting Event is here")
 st.markdown("<h1 class='gold-title'>FIFA WORLD CUP 2026</h1>", unsafe_allow_html=True)
 
 selected_team = st.selectbox(

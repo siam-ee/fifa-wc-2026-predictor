@@ -14,6 +14,8 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 20px; 
     }
+    /* Gold Title styling */
+    .gold-title { color: gold !important; text-shadow: 2px 2px 4px black; }
     h1, h2, h3, label, p { color: white !important; text-shadow: 2px 2px 4px black; }
     div[data-baseweb="select"], .stButton>button { 
         background-color: rgba(255, 255, 255, 0.2) !important;
@@ -39,8 +41,9 @@ df = load_data()
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
 # 4. HEADER
-st.subheader("The Greatest Sporting Event is here 🐐")
-st.title("FIFA WORLD CUP 2026")
+# Reduced subheader size using markdown
+st.markdown("##### The Greatest Sporting Event is here 🐐")
+st.markdown("<h1 class='gold-title'>FIFA WORLD CUP 2026</h1>", unsafe_allow_html=True)
 
 selected_team = st.selectbox(
     "⚽ Support a Team", 
@@ -85,17 +88,26 @@ elif st.session_state.page == "H2H":
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
             df_raw = pd.read_csv("simulation_results.csv")
-            def get_strength(name):
-                row = df_raw[df_raw['team'] == name].iloc[0]
-                return sum([float(row[c]) for c in ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']])
-            s1, s2 = get_strength(t1), get_strength(t2)
-            total_s = s1 + s2
-            diff_ratio = abs(s1 - s2) / total_s
-            pd = max(0.02, 0.30 * (1 - diff_ratio**0.5))
-            remaining = 1.0 - pd
-            p1, p2 = (s1 / total_s) * remaining, (s2 / total_s) * remaining
             
-        c1, c2, c3 = st.columns(3)
-        c1.metric(f"{t1} Win", f"{p1:.1%}")
-        c2.metric("Draw", f"{pd:.1%}")
-        c3.metric(f"{t2} Win", f"{p2:.1%}")
+            def get_strength(name):
+                # Robust matching: ignore case and whitespace
+                match = df_raw[df_raw['team'].str.strip().str.lower() == name.strip().lower()]
+                if match.empty: return 0.0
+                row = match.iloc[0]
+                return sum([float(row[c]) for c in ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']])
+
+            s1, s2 = get_strength(t1), get_strength(t2)
+            
+            if s1 == 0 or s2 == 0:
+                st.error("Error: Team data not found.")
+            else:
+                total_s = s1 + s2
+                diff_ratio = abs(s1 - s2) / total_s
+                pd = max(0.02, 0.30 * (1 - diff_ratio**0.5))
+                remaining = 1.0 - pd
+                p1, p2 = (s1 / total_s) * remaining, (s2 / total_s) * remaining
+                
+                c1, c2, c3 = st.columns(3)
+                c1.metric(f"{t1} Win", f"{p1:.1%}")
+                c2.metric("Draw", f"{pd:.1%}")
+                c3.metric(f"{t2} Win", f"{p2:.1%}")

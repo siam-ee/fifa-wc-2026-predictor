@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# 1. SETUP PAGE
+# 1. PAGE SETUP
 st.set_page_config(layout="wide", page_title="2026 World Cup Predictor")
 
 # 2. GLASSMORPHISM CSS
+# Replace the URL below with your direct .jpg/.png link
 st.markdown("""
     <style>
     .stApp {
@@ -13,13 +14,16 @@ st.markdown("""
         background-size: cover;
         background-attachment: fixed;
     }
-    .main .block-container {
-        background: rgba(255, 255, 255, 0.1);
+    /* Apply Glassmorphism to the main content area */
+    section.main > div {
+        background: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(15px);
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 20px;
         padding: 40px;
+        color: white;
     }
+    h1, h2, h3, p, div { color: white !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -28,6 +32,7 @@ st.markdown("""
 def load_data():
     df = pd.read_csv("simulation_results.csv")
     df['quarter_odds'] = df['semi_odds'] + df['final_odds']
+    # Specific column order
     cols = ['team', 'elo_rating', 'round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']
     df = df[cols]
     df = df.rename(columns={
@@ -50,7 +55,7 @@ if 'supported_team' not in st.session_state: st.session_state.supported_team = N
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
 # 5. UI LAYOUT
-st.title("The Greatest Sporting Event is here")
+st.title("The Greatest Sporting Event is here 🐐")
 df = load_data()
 
 with st.expander("⚽ Support a Team"):
@@ -64,37 +69,26 @@ if c3.button("⚔️ Head to Head Simulator"): st.session_state.page = "H2H"
 st.markdown("---")
 
 # 6. PAGE NAVIGATION
-# 6. PAGE NAVIGATION
 if st.session_state.page == "Dashboard":
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
     
-    # Handle Default: If no team selected, color is all 'Other'
-    top15['color'] = top15['Team Name'].apply(
-        lambda x: 'Selected' if x == st.session_state.supported_team else 'Other'
-    )
+    # Highlight
+    top15['color'] = top15['Team Name'].apply(lambda x: 'Selected' if x == st.session_state.supported_team else 'Other')
     
-    # Adding animation: Using the 'Win Odds' for a smooth transition
-    fig = px.bar(
-        top15, x="Win Odds", y="Team Name", orientation="h", color="color",
-        color_discrete_map={"Selected": "gold", "Other": "royalblue"},
-        title="Top 15 Teams",
-        animation_frame="Team Name" # This triggers the sequential animation
-    )
+    fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h", color="color",
+                 color_discrete_map={"Selected": "gold", "Other": "royalblue"})
     
-    # Disable the slider for a cleaner look
-    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 500
-    
+    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="white")
     st.plotly_chart(fig, use_container_width=True)
     
-    # Improved Warning
     if st.session_state.supported_team and st.session_state.supported_team not in top15['Team Name'].values:
         st.warning(f"Oops, {st.session_state.supported_team} is not in the top 15!!")
 
 elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")
     def style_row(row):
-        return ['color: gold; font-weight: bold' if row['Team Name'] == st.session_state.supported_team else '' for _ in row]
+        return ['background-color: rgba(255, 215, 0, 0.3)' if row['Team Name'] == st.session_state.supported_team else '' for _ in row]
     st.dataframe(df.style.apply(style_row, axis=1), use_container_width=True)
 
 elif st.session_state.page == "H2H":

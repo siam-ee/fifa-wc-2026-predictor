@@ -90,19 +90,29 @@ elif st.session_state.page == "H2H":
         if t1 == t2:
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
-            # Get ELO ratings from the dataframe
-            elo1 = df.loc[df['Team Name'] == t1, 'ELO Rating'].values[0]
-            elo2 = df.loc[df['Team Name'] == t2, 'ELO Rating'].values[0]
+            # 1. Calculate a "Tournament Strength Score" for each team
+            # We use all the odds columns as a proxy for team quality
+            def get_strength(team_name):
+                row = df[df['Team Name'] == team_name].iloc[0]
+                # Convert percentage strings back to floats
+                odds = [float(row[c].strip('%'))/100 for c in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']]
+                return sum(odds)
+
+            s1 = get_strength(t1)
+            s2 = get_strength(t2)
             
-            # Simple ELO probability formula
-            # Expected score for team 1
-            e1 = 1 / (1 + 10 ** ((elo2 - elo1) / 400))
+            # 2. Probability Logic
+            # Total strength ratio
+            total_s = s1 + s2
+            win_prob_diff = abs(s1 - s2) / total_s  # Larger diff = less likely draw
             
-            # Distribute into Win/Draw/Loss (approximate logic)
-            # You can tweak these multipliers to adjust draw frequency
-            p1 = e1 * 0.7  # Win probability
-            p2 = (1 - e1) * 0.7 # Win probability
-            pd = 0.3 # Fixed draw probability for this simulation
+            # Draw is high if teams are close, low if teams are far apart (max 30%, min 10%)
+            pd = max(0.10, 0.30 - (win_prob_diff * 0.5))
+            
+            # Remaining probability distributed by strength
+            remaining = 1.0 - pd
+            p1 = (s1 / total_s) * remaining
+            p2 = (s2 / total_s) * remaining
             
         c1, c2, c3 = st.columns(3)
         c1.metric(f"{t1} Win", f"{p1:.1%}")

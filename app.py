@@ -9,7 +9,7 @@ st.set_page_config(layout="wide", page_title="2026 World Cup Predictor")
 st.markdown("""
     <style>
     .stApp {
-        background-image: url('https://share.google/StxqePw1xUrrAkqevE');
+        background-image: url('https://i.imgur.com/GtqgyfN.jpeg');
         background-size: cover;
         background-attachment: fixed;
     }

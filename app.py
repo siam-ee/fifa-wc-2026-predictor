@@ -28,9 +28,18 @@ st.markdown("""
 @st.cache_data
 def load_data():
     df = pd.read_csv("simulation_results.csv")
-    # Correct mapping based on video: 
-    # 0:team, 1:elo, 2:r16, 3:quarter, 4:semi, 5:final, 6:win
-    df_clean = df.iloc[:, [0, 1, 2, 3, 4, 5, 6]].copy()
+    
+    # We rename columns to match our expected format for processing
+    # Assuming standard order: Team, ELO, R16, Qtr, Semi, Final, Win
+    # We rename them based on position to avoid index errors
+    cols = ['team', 'elo_rating', 'round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']
+    df.columns = cols[:len(df.columns)] 
+    
+    # Re-calculate quarter_odds if not provided correctly
+    if 'semi_odds' in df.columns and 'final_odds' in df.columns:
+        df['quarter_odds'] = df['semi_odds'] + df['final_odds']
+        
+    df_clean = df.copy()
     df_clean.columns = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
     df_clean.insert(0, 'No.', range(1, 1 + len(df_clean)))
     return df_clean
@@ -87,12 +96,15 @@ elif st.session_state.page == "H2H":
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
             df_raw = pd.read_csv("simulation_results.csv")
+            # Use same column naming as load_data
+            df_raw.columns = ['team', 'elo_rating', 'round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds'][:len(df_raw.columns)]
+            
             def get_strength(name):
-                # Ensure we match the name correctly from the first column
-                match = df_raw[df_raw.iloc[:, 0].astype(str).str.strip().str.lower() == name.strip().lower()]
+                match = df_raw[df_raw['team'].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0
-                # Sum columns 2 through 6 (Odds columns: R16, Qtr, Semi, Final, Win)
-                return float(match.iloc[0, 2:7].sum())
+                # Sum the specific odds columns
+                odds_cols = ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']
+                return float(match[odds_cols].sum(axis=1).iloc[0])
 
             s1, s2 = get_strength(t1), get_strength(t2)
             if s1 == 0 or s2 == 0:

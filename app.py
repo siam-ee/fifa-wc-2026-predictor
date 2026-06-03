@@ -21,7 +21,6 @@ st.markdown("""
         color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.4) !important;
     }
-    /* Mobile Responsive Fix: Disable blur on small screens to prevent glitches */
     @media (max-width: 768px) {
         .block-container { backdrop-filter: none !important; background: rgba(0,0,0,0.6) !important; }
     }
@@ -34,21 +33,28 @@ def load_data():
     try:
         df = pd.read_csv("simulation_results.csv")
     except Exception:
-        return pd.DataFrame() # Return empty if file not found
+        return pd.DataFrame() 
     
+    # Rename original 'round16_odds' to 'RO32 Odds'
     df = df.rename(columns={
         'team': 'Team Name',
         'elo_rating': 'ELO Rating',
-        'round16_odds': 'RO16 Odds',
+        'round16_odds': 'RO32 Odds',
         'semi_odds': 'Semi Odds',
         'final_odds': 'Final Odds',
         'win_odds': 'Win Odds'
     })
     
+    # Calculations
     if 'Semi Odds' in df.columns and 'Final Odds' in df.columns:
         df['Quarter Odds'] = df['Semi Odds'] + df['Final Odds']
     
-    cols_order = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
+    # Calculate RO16 Odds as Quarter + Semi (per your request to add them)
+    if 'Quarter Odds' in df.columns and 'Semi Odds' in df.columns:
+        df['RO16 Odds'] = df['Quarter Odds'] + df['Semi Odds']
+    
+    # Set explicit column order
+    cols_order = ['Team Name', 'ELO Rating', 'RO32 Odds', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
     for col in cols_order:
         if col not in df.columns: df[col] = 0.0
     
@@ -59,10 +65,9 @@ def load_data():
 
 df = load_data()
 
-# 3. STATE
+# 3. STATE & UI
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
-# 4. HEADER
 st.markdown("##### The Greatest Sporting Event is here 🐐")
 st.markdown("<h1 class='gold-title'>FIFA WORLD CUP 2026</h1>", unsafe_allow_html=True)
 
@@ -79,7 +84,7 @@ if c3.button("⚔️ Head to Head Simulator"): st.session_state.page = "H2H"
 
 st.markdown("---")
 
-# 5. LOGIC
+# 4. LOGIC
 if st.session_state.page == "Dashboard" and selected_team:
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
@@ -93,7 +98,7 @@ if st.session_state.page == "Dashboard" and selected_team:
 elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")
     df_display = df.copy()
-    for col in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
+    for col in ['RO32 Odds', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
         df_display[col] = df_display[col].apply(lambda x: f"{x*100:.2f}%")
     
     df_display = df_display.set_index('No.')
@@ -113,10 +118,9 @@ elif st.session_state.page == "H2H":
         else:
             df_raw = load_data()
             def get_strength(name):
-                # Defensive check: ensure column exists before accessing
                 match = df_raw[df_raw['Team Name'].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0
-                cols = ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
+                cols = ['RO32 Odds', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
                 existing_cols = [c for c in cols if c in match.columns]
                 return float(match[existing_cols].sum(axis=1).iloc[0])
 

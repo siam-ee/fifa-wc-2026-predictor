@@ -64,15 +64,32 @@ if c3.button("⚔️ Head to Head Simulator"): st.session_state.page = "H2H"
 st.markdown("---")
 
 # 6. PAGE NAVIGATION
+# 6. PAGE NAVIGATION
 if st.session_state.page == "Dashboard":
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
-    top15['color'] = top15['Team Name'].apply(lambda x: 'Selected' if x == st.session_state.supported_team else 'Other')
-    fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h", color="color",
-                 color_discrete_map={"Selected": "gold", "Other": "royalblue"})
+    
+    # Handle Default: If no team selected, color is all 'Other'
+    top15['color'] = top15['Team Name'].apply(
+        lambda x: 'Selected' if x == st.session_state.supported_team else 'Other'
+    )
+    
+    # Adding animation: Using the 'Win Odds' for a smooth transition
+    fig = px.bar(
+        top15, x="Win Odds", y="Team Name", orientation="h", color="color",
+        color_discrete_map={"Selected": "gold", "Other": "royalblue"},
+        title="Top 15 Teams",
+        animation_frame="Team Name" # This triggers the sequential animation
+    )
+    
+    # Disable the slider for a cleaner look
+    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 500
+    
     st.plotly_chart(fig, use_container_width=True)
-    if st.session_state.supported_team not in top15['Team Name'].values:
-        st.warning("Oops, seems your team is not in top 15!!")
+    
+    # Improved Warning
+    if st.session_state.supported_team and st.session_state.supported_team not in top15['Team Name'].values:
+        st.warning(f"Oops, {st.session_state.supported_team} is not in the top 15!!")
 
 elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")

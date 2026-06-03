@@ -2,73 +2,93 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# --- SETUP & HELPERS ---
-st.set_page_config(layout="wide")
+# 1. SETUP PAGE
+st.set_page_config(layout="wide", page_title="2026 World Cup Predictor")
 
+# 2. GLASSMORPHISM CSS
+st.markdown("""
+    <style>
+    .stApp {
+        background-image: url('https://share.google/StxqePw1xUrrAkqevE');
+        background-size: cover;
+        background-attachment: fixed;
+    }
+    .main .block-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 40px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 3. HELPER FUNCTIONS
+@st.cache_data
 def load_data():
     df = pd.read_csv("simulation_results.csv")
-    # Add Quarter Odds estimation
     df['quarter_odds'] = df['semi_odds'] + df['final_odds']
-    # Clean up column names and index
+    cols = ['team', 'elo_rating', 'round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']
+    df = df[cols]
     df = df.rename(columns={
-        'win_odds': 'Win Odds', 'final_odds': 'Final Odds', 
-        'semi_odds': 'Semi Odds', 'round16_odds': 'RO16 Odds',
-        'elo_rating': 'ELO Rating'
+        'team': 'Team Name', 'elo_rating': 'ELO Rating', 'round16_odds': 'RO16 Odds',
+        'quarter_odds': 'Quarter Odds', 'semi_odds': 'Semi Odds', 'final_odds': 'Final Odds', 'win_odds': 'Win Odds'
     })
     df.index = df.index + 1
     return df
 
-# --- UI & NAVIGATION ---
+def match_prob(ra, rb, home_adv=65.0):
+    diff = (ra + home_adv) - rb
+    p_win = 1 / (1 + 10 ** (-diff / 400))
+    p_draw = max(0.12, 0.28 - abs(diff) / 2000)
+    p_draw = min(p_draw, 0.35)
+    scale = 1 - p_draw
+    return p_win * scale, p_draw, (1 - p_win) * scale
+
+# 4. INITIALIZE SESSION
+if 'supported_team' not in st.session_state: st.session_state.supported_team = None
+if 'page' not in st.session_state: st.session_state.page = "Dashboard"
+
+# 5. UI LAYOUT
 st.title("The Greatest Sporting Event is here")
-
-if 'supported_team' not in st.session_state:
-    st.session_state.supported_team = None
-if 'page' not in st.session_state:
-    st.session_state.page = "Home"
-
-# Support a Team Popup
-with st.expander("⚽ Support a Team"):
-    teams_list = sorted(load_data()['team'].tolist())
-    st.session_state.supported_team = st.selectbox("Select your nation to support:", teams_list)
-
-# Navigation
-col1, col2, col3 = st.columns(3)
-if col1.button("🏆 Prediction Dashboard"): st.session_state.page = "Dashboard"
-if col2.button("📊 Tournament Table Odds"): st.session_state.page = "Table"
-if col3.button("⚔️ Head to Head Simulator"): st.session_state.page = "H2H"
-
-# --- PAGE LOGIC ---
 df = load_data()
 
+with st.expander("⚽ Support a Team"):
+    st.session_state.supported_team = st.selectbox("Select your nation:", df['Team Name'].tolist())
+
+c1, c2, c3 = st.columns(3)
+if c1.button("🏆 Prediction Dashboard"): st.session_state.page = "Dashboard"
+if c2.button("📊 Tournament Table"): st.session_state.page = "Table"
+if c3.button("⚔️ Head to Head Simulator"): st.session_state.page = "H2H"
+
+st.markdown("---")
+
+# 6. PAGE NAVIGATION
 if st.session_state.page == "Dashboard":
-    st.header("FIFA World Cup Prediction Dashboard")
+    st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
-    
-    # Highlight logic
-    top15['color'] = top15['team'].apply(lambda x: 'Gold' if x == st.session_state.supported_team else 'Blue')
-    
-    fig = px.bar(top15, x="Win Odds", y="team", orientation="h", color="color", 
-                 color_discrete_map={"Gold": "gold", "Blue": "royalblue"},
-                 title="Top 15 Teams")
+    top15['color'] = top15['Team Name'].apply(lambda x: 'Selected' if x == st.session_state.supported_team else 'Other')
+    fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h", color="color",
+                 color_discrete_map={"Selected": "gold", "Other": "royalblue"})
     st.plotly_chart(fig, use_container_width=True)
-    
-    if st.session_state.supported_team not in top15['team'].values:
+    if st.session_state.supported_team not in top15['Team Name'].values:
         st.warning("Oops, seems your team is not in top 15!!")
 
 elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")
-    
-    def highlight_row(row):
-        color = 'background-color: gold' if row['team'] == st.session_state.supported_team else ''
-        return [color] * len(row)
-    
-    st.dataframe(df.style.apply(highlight_row, axis=1), use_container_width=True)
+    def style_row(row):
+        return ['color: gold; font-weight: bold' if row['Team Name'] == st.session_state.supported_team else '' for _ in row]
+    st.dataframe(df.style.apply(style_row, axis=1), use_container_width=True)
 
 elif st.session_state.page == "H2H":
     st.header("Head to Head Simulator")
-    t1 = st.selectbox("Team 1", df['team'].tolist())
-    t2 = st.selectbox("Team 2", df['team'].tolist())
+    t1 = st.selectbox("Team 1", df['Team Name'].tolist())
+    t2 = st.selectbox("Team 2", df['Team Name'].tolist())
     if st.button("Simulate"):
-        # Your match_prob logic here...
-        st.write(f"Results for {t1} vs {t2}")
-        st.metric("Win Probability", "45%") # Placeholder for your actual logic
+        ra = df.loc[df['Team Name'] == t1, 'ELO Rating'].values[0]
+        rb = df.loc[df['Team Name'] == t2, 'ELO Rating'].values[0]
+        p1, pd, p2 = match_prob(ra, rb)
+        col1, col2, col3 = st.columns(3)
+        col1.metric(f"{t1} Win", f"{p1:.1%}")
+        col2.metric("Draw", f"{pd:.1%}")
+        col3.metric(f"{t2} Win", f"{p2:.1%}")

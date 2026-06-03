@@ -4,7 +4,7 @@ import plotly.express as px
 
 st.set_page_config(layout="wide", page_title="2026 World Cup Predictor")
 
-# 1. REFINED GLASS CSS
+# 1. ENHANCED GLASS CSS (Visible in Light/Dark Mode)
 st.markdown("""
     <style>
     .stApp { background-image: url('https://i.imgur.com/GtqgyfN.jpeg'); background-size: cover; background-attachment: fixed; }
@@ -15,8 +15,9 @@ st.markdown("""
         border-radius: 20px; padding: 3rem !important; 
     }
     h1, h2, h3, div, label, p, .stButton>button { color: white !important; font-weight: 600 !important; }
-    .stSelectbox label { font-size: 20px !important; }
-    .stButton>button { background-color: rgba(255,255,255,0.1) !important; border: 1px solid white !important; padding: 10px 25px !important; font-size: 18px !important; }
+    /* Force dropdown visibility */
+    .stSelectbox div[data-baseweb="select"] { background-color: rgba(255,255,255,0.2) !important; }
+    .stSelectbox span { color: white !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -37,10 +38,8 @@ if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
 # 4. HEADER UI
 st.title("The Greatest Sporting Event is here")
-st.session_state.supported_team = st.selectbox("⚽ Support a Team (Optional)", [None] + df['Team Name'].tolist(), 
-                                               format_func=lambda x: x if x else "Optional: Select your team for highlighting...")
+st.session_state.supported_team = st.selectbox("⚽ Support a Team", df['Team Name'].tolist())
 
-# Navigation buttons accessible always
 c1, c2, c3 = st.columns(3)
 if c1.button("🏆 Prediction Dashboard"): st.session_state.page = "Dashboard"
 if c2.button("📊 Tournament Table"): st.session_state.page = "Table"
@@ -53,10 +52,12 @@ if st.session_state.page == "Dashboard":
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
     top15['color'] = top15['Team Name'].apply(lambda x: 'Selected' if x == st.session_state.supported_team else 'Other')
-    fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h", color="color", color_discrete_map={"Selected": "gold", "Other": "royalblue"})
+    # Added text_auto=True for labels
+    fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h", color="color", 
+                 color_discrete_map={"Selected": "gold", "Other": "royalblue"}, text_auto='.1%')
     fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="white")
     st.plotly_chart(fig, use_container_width=True)
-    if st.session_state.supported_team and st.session_state.supported_team not in top15['Team Name'].values:
+    if st.session_state.supported_team not in top15['Team Name'].values:
         st.warning(f"Oops, {st.session_state.supported_team} is not in the top 15!!")
 
 elif st.session_state.page == "Table":
@@ -68,7 +69,12 @@ elif st.session_state.page == "H2H":
     t1 = st.selectbox("Team 1", df['Team Name'].tolist(), key="t1")
     t2 = st.selectbox("Team 2", df['Team Name'].tolist(), key="t2")
     if st.button("Simulate Match Now"):
+        if t1 == t2:
+            p1, pd, p2 = 0.50, 0.00, 0.50
+        else:
+            # Your existing math logic here
+            p1, pd, p2 = 0.45, 0.20, 0.35 
         col1, col2, col3 = st.columns(3)
-        col1.metric(f"{t1} Win", "45%")
-        col2.metric("Draw", "20%")
-        col3.metric(f"{t2} Win", "35%")
+        col1.metric(f"{t1} Win", f"{p1:.1%}")
+        col2.metric("Draw", f"{pd:.1%}")
+        col3.metric(f"{t2} Win", f"{p2:.1%}")

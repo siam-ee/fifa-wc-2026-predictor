@@ -29,18 +29,19 @@ st.markdown("""
 def load_data():
     df = pd.read_csv("simulation_results.csv")
     
-    # We rename columns to match our expected format for processing
-    # Assuming standard order: Team, ELO, R16, Qtr, Semi, Final, Win
-    # We rename them based on position to avoid index errors
-    cols = ['team', 'elo_rating', 'round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']
-    df.columns = cols[:len(df.columns)] 
+    # 1. Map columns based on their known position (0:Team, 1:ELO, 2:R16, 3:Qtr, 4:Semi, 5:Final, 6:Win)
+    # We rename only the columns we actually have
+    col_map = {df.columns[0]: 'Team Name', df.columns[1]: 'ELO Rating', 
+               df.columns[2]: 'RO16 Odds', df.columns[3]: 'Quarter Odds', 
+               df.columns[4]: 'Semi Odds', df.columns[5]: 'Final Odds', 
+               df.columns[6]: 'Win Odds'}
+    df = df.rename(columns=col_map)
     
-    # Re-calculate quarter_odds if not provided correctly
-    if 'semi_odds' in df.columns and 'final_odds' in df.columns:
-        df['quarter_odds'] = df['semi_odds'] + df['final_odds']
-        
-    df_clean = df.copy()
-    df_clean.columns = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
+    # 2. Ensure Quarter Odds is calculated correctly
+    df['Quarter Odds'] = df['Semi Odds'] + df['Final Odds']
+    
+    # 3. Create clean subset
+    df_clean = df[['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']].copy()
     df_clean.insert(0, 'No.', range(1, 1 + len(df_clean)))
     return df_clean
 
@@ -96,15 +97,13 @@ elif st.session_state.page == "H2H":
             p1, pd, p2 = 0.50, 0.00, 0.50
         else:
             df_raw = pd.read_csv("simulation_results.csv")
-            # Use same column naming as load_data
-            df_raw.columns = ['team', 'elo_rating', 'round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds'][:len(df_raw.columns)]
-            
+            # Using same mapping logic for the raw CSV to ensure strength calculation is correct
             def get_strength(name):
-                match = df_raw[df_raw['team'].astype(str).str.strip().str.lower() == name.strip().lower()]
+                # Match based on first column index
+                match = df_raw[df_raw.iloc[:, 0].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0
-                # Sum the specific odds columns
-                odds_cols = ['round16_odds', 'quarter_odds', 'semi_odds', 'final_odds', 'win_odds']
-                return float(match[odds_cols].sum(axis=1).iloc[0])
+                # Use numerical indices for odds columns (2, 3, 4, 5, 6)
+                return float(match.iloc[0, 2:7].sum())
 
             s1, s2 = get_strength(t1), get_strength(t2)
             if s1 == 0 or s2 == 0:

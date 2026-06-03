@@ -29,8 +29,7 @@ st.markdown("""
 def load_data():
     df = pd.read_csv("simulation_results.csv")
     
-    # FIX: Map your CSV's actual column names to the names the app expects.
-    # ADJUST THE KEYS (left side) to match your CSV's exact header names.
+    # Map CSV headers to display names
     df = df.rename(columns={
         'team': 'Team Name',
         'elo_rating': 'ELO Rating',
@@ -44,11 +43,13 @@ def load_data():
     if 'Semi Odds' in df.columns and 'Final Odds' in df.columns:
         df['Quarter Odds'] = df['Semi Odds'] + df['Final Odds']
     
-    # Ensure all expected columns exist to prevent KeyErrors
-    for col in ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
-        if col not in df.columns:
-            df[col] = 0.0
-            
+    # Set explicit column order
+    cols_order = ['Team Name', 'ELO Rating', 'RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']
+    # Add missing columns if any
+    for col in cols_order:
+        if col not in df.columns: df[col] = 0.0
+    
+    df = df[cols_order]
     df.insert(0, 'No.', range(1, 1 + len(df)))
     return df
 
@@ -88,6 +89,7 @@ if st.session_state.page == "Dashboard" and selected_team:
 elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")
     df_display = df.copy()
+    # Format percentages
     for col in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
         df_display[col] = df_display[col].apply(lambda x: f"{x*100:.1f}%")
     def highlight_team(row):
@@ -101,11 +103,10 @@ elif st.session_state.page == "H2H":
     
     if st.button("Simulate Match"):
         if t1 == t2:
-            p1, pd, p2 = 0.50, 0.00, 0.50
+            st.warning("⚠️ Are you sure they are not the same team?")
         else:
-            # Re-read and re-apply the same mapping
+            # Re-fetch raw data for calculation
             df_raw = load_data()
-            
             def get_strength(name):
                 match = df_raw[df_raw['Team Name'].astype(str).str.strip().str.lower() == name.strip().lower()]
                 if match.empty: return 0.0

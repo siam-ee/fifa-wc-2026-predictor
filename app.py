@@ -85,8 +85,25 @@ elif st.session_state.page == "H2H":
     st.header("Head to Head Simulator")
     t1 = st.selectbox("Team 1", df['Team Name'].tolist(), key="t1")
     t2 = st.selectbox("Team 2", df['Team Name'].tolist(), key="t2")
+    
     if st.button("Simulate"):
-        p1, pd, p2 = (0.50, 0.00, 0.50) if t1 == t2 else (0.45, 0.20, 0.35)
+        if t1 == t2:
+            p1, pd, p2 = 0.50, 0.00, 0.50
+        else:
+            # Get ELO ratings from the dataframe
+            elo1 = df.loc[df['Team Name'] == t1, 'ELO Rating'].values[0]
+            elo2 = df.loc[df['Team Name'] == t2, 'ELO Rating'].values[0]
+            
+            # Simple ELO probability formula
+            # Expected score for team 1
+            e1 = 1 / (1 + 10 ** ((elo2 - elo1) / 400))
+            
+            # Distribute into Win/Draw/Loss (approximate logic)
+            # You can tweak these multipliers to adjust draw frequency
+            p1 = e1 * 0.7  # Win probability
+            p2 = (1 - e1) * 0.7 # Win probability
+            pd = 0.3 # Fixed draw probability for this simulation
+            
         c1, c2, c3 = st.columns(3)
         c1.metric(f"{t1} Win", f"{p1:.1%}")
         c2.metric("Draw", f"{pd:.1%}")

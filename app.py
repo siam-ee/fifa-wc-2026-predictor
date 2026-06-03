@@ -63,7 +63,7 @@ df = load_data()
 if 'page' not in st.session_state: st.session_state.page = "Dashboard"
 
 # 4. HEADER
-st.markdown("##### The Greatest Sporting Event is here")
+st.markdown("##### The Greatest Sporting Event is here 🐐")
 st.markdown("<h1 class='gold-title'>FIFA WORLD CUP 2026</h1>", unsafe_allow_html=True)
 
 selected_team = st.selectbox(
@@ -84,7 +84,6 @@ if st.session_state.page == "Dashboard" and selected_team:
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
     colors = [ 'gold' if x == selected_team else 'royalblue' for x in top15['Team Name']]
-    # text_auto='.2%' sets 2 decimal places for better distinction
     fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h",
                  color=colors, color_discrete_map="identity", text_auto='.2%')
     fig.update_traces(textposition='outside')
@@ -97,9 +96,14 @@ elif st.session_state.page == "Table":
     # Format percentages to 2 decimal places
     for col in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
         df_display[col] = df_display[col].apply(lambda x: f"{x*100:.2f}%")
+    
+    # Set 'No.' as the index to hide the default Pandas index
+    df_display = df_display.set_index('No.')
+    
     def highlight_team(row):
         return ['background-color: rgba(255, 215, 0, 0.3)' if row['Team Name'] == selected_team else '' for _ in row]
-    st.dataframe(df_display.style.apply(highlight_team, axis=1).hide(axis='index'), use_container_width=True)
+    
+    st.dataframe(df_display.style.apply(highlight_team, axis=1), use_container_width=True)
 
 elif st.session_state.page == "H2H":
     st.header("Head to Head Simulator")

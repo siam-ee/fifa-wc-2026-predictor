@@ -4,21 +4,18 @@ import plotly.express as px
 
 st.set_page_config(layout="wide", page_title="2026 World Cup Predictor")
 
-# 1. FIXED GLASS CSS: Image remains at the bottom, container tint on top
+# 1. UPDATED CSS: Added text-shadow to titles
 st.markdown("""
     <style>
     .stApp { background: url('https://i.imgur.com/GtqgyfN.jpeg') no-repeat center center fixed; background-size: cover; }
-    
-    /* Container glass effect */
     .block-container { 
         background: rgba(0, 0, 0, 0.3) !important; 
         backdrop-filter: blur(12px) !important;
         border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 20px; 
     }
-    
-    /* Text and UI elements */
-    h1, h2, label, p, th, td { color: white !important; }
+    /* Titles with shadow, table/team text without */
+    h1, h2, label, p { color: white !important; text-shadow: 2px 2px 4px black; }
     div[data-baseweb="select"], .stButton>button { 
         background-color: rgba(255, 255, 255, 0.2) !important;
         color: white !important;
@@ -56,28 +53,39 @@ st.markdown("---")
 if st.session_state.page == "Dashboard" and selected_team:
     st.header("Prediction Dashboard")
     top15 = df.nlargest(15, 'Win Odds').sort_values("Win Odds", ascending=True)
-    # Highlight logic restored
+    
+    # Corrected color mapping: Selected=Gold, Normal=RoyalBlue
+    colors = [ 'gold' if x == selected_team else 'royalblue' for x in top15['Team Name']]
+    
+    # text_auto percentage formatting, labels moved outside
     fig = px.bar(top15, x="Win Odds", y="Team Name", orientation="h",
-                 color=[ 'gold' if x == selected_team else 'royalblue' for x in top15['Team Name']],
-                 text_auto='.3f')
+                 color=colors, color_discrete_map="identity",
+                 text_auto='.1%')
+    
+    fig.update_traces(textposition='outside')
     fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="white")
     st.plotly_chart(fig, use_container_width=True)
 
 elif st.session_state.page == "Table":
     st.header("Tournament Table Odds")
-    # Styling restored
+    # Show percentages in table (multiply by 100)
+    df_display = df.copy()
+    for col in ['RO16 Odds', 'Quarter Odds', 'Semi Odds', 'Final Odds', 'Win Odds']:
+        df_display[col] = df_display[col].apply(lambda x: f"{x*100:.1f}%")
+        
     def highlight_team(row):
         return ['background-color: rgba(255, 215, 0, 0.3)' if row['Team Name'] == selected_team else '' for _ in row]
-    st.dataframe(df.style.apply(highlight_team, axis=1).hide(axis='index'), use_container_width=True)
+    
+    st.dataframe(df_display.style.apply(highlight_team, axis=1).hide(axis='index'), use_container_width=True)
 
 elif st.session_state.page == "H2H":
     st.header("Head to Head Simulator")
     t1 = st.selectbox("Team 1", df['Team Name'].tolist(), key="t1")
     t2 = st.selectbox("Team 2", df['Team Name'].tolist(), key="t2")
     if st.button("Simulate"):
-        # Fix logic: Same team = 50/50
-        p1, pd, p2 = (0.500, 0.000, 0.500) if t1 == t2 else (0.450, 0.200, 0.350)
+        p1, pd, p2 = (0.50, 0.00, 0.50) if t1 == t2 else (0.45, 0.20, 0.35)
         c1, c2, c3 = st.columns(3)
-        c1.metric(f"{t1} Win", f"{p1:.3f}")
-        c2.metric("Draw", f"{pd:.3f}")
-        c3.metric(f"{t2} Win", f"{p2:.3f}")
+        # Display as percentages
+        c1.metric(f"{t1} Win", f"{p1:.1%}")
+        c2.metric("Draw", f"{pd:.1%}")
+        c3.metric(f"{t2} Win", f"{p2:.1%}")
